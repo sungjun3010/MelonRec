@@ -205,23 +205,19 @@ class title_tokenizer():
         return tokenized_sentences
 
 
-def train_tokenizer_w2v(_train_file_path, _val_file_path, _test_file_path, _genre_file_path, _tokenize_input_file_path,
-                        _submit_type):
-
-    sentences = make_input4tokenizer(_train_file_path, _genre_file_path, _tokenize_input_file_path, _val_file_path,
-                                     _test_file_path)
-
-    if not sentences:
-        sys.exit(1)
-
+def train_w2v(trn_fp, val_fp, tst_fp, genre_fp, result_fp, _submit_type):
+    # 플레이리스트의 태그, 장르, 제목에 등장하는 단어 취합
+    sentences = make_input4tokenizer(trn_fp, genre_fp, result_fp, val_fp, tst_fp)
+    # 취합한 정보를 갖고 tokenizer 학습 (sentencepiece lib의 SentencePieceTrainer func.)
     tokenizer_name = 'model/tokenizer_{}_{}_{}'.format(method, vocab_size, _submit_type)
-    tokenizer_name_model = 'model/tokenizer_{}_{}_{}.model'.format(method, vocab_size, _submit_type)
-    print("start train_tokenizer...w.")
-    train_tokenizer(_tokenize_input_file_path, tokenizer_name, vocab_size, method)
+    tokenizer_name_model = tokenizer_name + ".model"
+    print("start train_tokenizer....")
+    train_tokenizer(result_fp, tokenizer_name, vocab_size, method)
     sp = spm.SentencePieceProcessor()
     sp.Load(tokenizer_name_model)
+    # 학습한 tokenizer의 tokenize 결과 반환
     tokenized_sentences = get_tokens_from_sentences(sp, sentences)
-
+    # gensim의 word2vec 모델을 사용해서 tokenize된 결과로 단어 임베딩 학습
     w2v_name = 'model/w2v_{}_{}_{}.model'.format(method, vocab_size, _submit_type)
     print("start train_w2v....")
     model = string2vec(tokenized_sentences, size=200, window=5, min_count=1, workers=8, sg=1, hs=1)
